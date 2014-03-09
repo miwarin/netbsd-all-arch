@@ -53,12 +53,13 @@ def result_sccess?(result_file)
 end
 
 def build_message(arch, success)
-  message = ''
+  res = ''
   if success == true
-    message = "#{arch} success"
+    res = "success"
   else
-    message = "#{arch} failure"
+    res = "failure"
   end
+  message = sprintf("%-16s %s", arch, res)
   return message
 end
 
@@ -90,13 +91,15 @@ end
 def main(argv)
   arch_readme = '/usr/src/sys/arch/README'
   machine_arch = get_all_arch(arch_readme)
+  message = ''
   
   machine_arch.each {|arch|
     result_file = do_build(arch)
     ok = result_sccess?(result_file)
-    message = build_message(arch, ok)
-    send_mail(message)
+    message << build_message(arch, ok)
+    message << "\n"
   }
+  send_mail(message)
 end
 
 main(ARGV)
