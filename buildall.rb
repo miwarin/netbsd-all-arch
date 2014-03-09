@@ -37,8 +37,13 @@ def do_build(machine_arch)
   src_dir = '/usr/src'
   result_file = "#{src_dir}/#{machine_arch}.build.result"
   Dir.chdir(src_dir) {|path|
-    cmd = "./build.sh -m #{machine_arch} build >#{result_file} 2>&1"
-    system(cmd)
+    cmd = "./build.sh -m #{machine_arch} build | tee #{result_file} 2>&1"
+    pid = Process.spawn(cmd)
+    Signal.trap(:INT) {
+      Process.kill('KILL', pid)
+      exit(0)
+    }
+    Process.wait()
   }
   return result_file
 end
