@@ -5,6 +5,25 @@
 #
 
 require 'mail'
+require 'pit'
+require 'pp'
+
+def setup()
+  config = Pit.get("netbsd build", :require => {
+    :mail_from    => "from@example.jp",
+    :mail_to      => "to@example.jp",
+    :mail_subject => "NetBSD build.sh result",
+    :mail_address => "smtp.example.jp",
+    :mail_port    => 25,
+    :mail_domain  => "example.jp",
+    :mail_username => "USERNAME",
+    :mail_password => "PASSWORD",
+    :mail_auth      => "plain",
+    :mail_starttls  => true
+  } )
+  
+  return config
+end
 
 def get_all_arch(arch_readme)
   :ST_DELIM1
@@ -68,15 +87,17 @@ def build_message(arch, success)
   return message
 end
 
-def send_mail(message)
+def send_mail(config, message)
+  # Todo password を pit 化
   options = {
-    :address              => "smtp.example.jp",
-    :port                 => 25,
-    :domain               => 'example.jp',
-    :user_name            => 'USERNAME',
+    :address              => config[:mail_address],
+    :port                 => config[:mail_port],
+    :domain               => config[:mail_domain],
+    :user_name            => config[:mail_username],
+#    :password             => config[:mail_password],
     :password             => 'PASSWORD',
-    :authentication       => 'plain',
-    :enable_starttls_auto => true
+    :authentication       => config[:mail_auth],
+    :enable_starttls_auto => config[:mail_starttls],
   }
 
   Mail.defaults do
@@ -84,19 +105,21 @@ def send_mail(message)
   end
 
   mail = Mail.new
-  mail.from = 'from@example.jp'
-  mail.to = 'to@example.jp'
-  mail.subject = 'NetBSD build.sh result'
+  mail.from = config[:mail_from]
+  mail.to = config[:mail_to]
+  mail.subject = config[:mail_subject]
   mail.charset ='iso-2022-jp'
   mail.add_content_transfer_encoding
   mail.body  = message
   mail.deliver
+
 end
 
 def main(argv)
   arch_readme = '/usr/src/sys/arch/README'
   machine_arch = get_all_arch(arch_readme)
   message = ''
+  config = setup()
   
   machine_arch.each {|arch|
     result_file = do_build(arch)
@@ -104,7 +127,7 @@ def main(argv)
     message << build_message(arch, ok)
     message << "\n"
   }
-  send_mail(message)
+  send_mail(config, message)
 end
 
 main(ARGV)
