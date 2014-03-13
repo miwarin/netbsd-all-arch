@@ -39,6 +39,7 @@ def get_source()
 end
 
 def main(argv)
+  setenv()
   get_source()
 end
 
