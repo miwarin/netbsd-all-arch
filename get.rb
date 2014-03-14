@@ -17,7 +17,9 @@ end
 def checkout()
   dir = '/usr'
   Dir.chdir(dir) {
-    cmd = "cvs checkout -P src"
+    cmd = "wget ftp://ftp.netbsd.org/pub/NetBSD/NetBSD-current/tar_files/src.tar.gz"
+    runcmd(cmd)
+    cmd = "tar xzf src.tar.gz"
     runcmd(cmd)
   }
 end
