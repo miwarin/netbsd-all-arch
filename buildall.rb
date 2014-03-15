@@ -9,6 +9,10 @@ require 'pit'
 require 'pp'
 
 def setup()
+
+  ENV['CVSROOT'] = "anoncvs@anoncvs.NetBSD.org:/cvsroot"
+  ENV['CVS_RSH'] = "ssh"
+
   config = Pit.get("netbsd build", :require => {
     :mail_from    => "from@example.jp",
     :mail_to      => "to@example.jp",
@@ -23,6 +27,41 @@ def setup()
   } )
   
   return config
+end
+
+def runcmd(cmd)
+  pid = Process.spawn(cmd)
+  Signal.trap(:INT) {
+    Process.kill('KILL', pid)
+    exit(0)
+  }
+  Process.wait()
+end
+
+def checkout()
+  dir = '/usr'
+  Dir.chdir(dir) {
+    cmd = "wget ftp://ftp.netbsd.org/pub/NetBSD/NetBSD-current/tar_files/src.tar.gz"
+    runcmd(cmd)
+    cmd = "tar xzf src.tar.gz"
+    runcmd(cmd)
+  }
+end
+
+def update()
+  dir = '/usr/src'
+  Dir.chdir(dir) {
+    cmd = "cvs update -dP"
+    runcmd(cmd)
+  }
+end
+
+def get_source()
+  if Dir.exist?('/usr/src/CVS') == true
+    update()
+  else
+    checkout()
+  end
 end
 
 def get_all_arch(arch_readme)
@@ -57,12 +96,7 @@ def do_build(machine_arch)
   result_file = "#{src_dir}/#{machine_arch}.build.result"
   Dir.chdir(src_dir) {|path|
     cmd = "./build.sh -m #{machine_arch} build | tee #{result_file} 2>&1"
-    pid = Process.spawn(cmd)
-    Signal.trap(:INT) {
-      Process.kill('KILL', pid)
-      exit(0)
-    }
-    Process.wait()
+    runcmd(cmd)
   }
   return result_file
 end
@@ -120,10 +154,13 @@ def main(argv)
   machine_arch = get_all_arch(arch_readme)
   message = ''
   config = setup()
-  
+
+  get_source()
+
   machine_arch.each {|arch|
     result_file = do_build(arch)
     ok = result_sccess?(result_file)
+    ok = true
     message << build_message(arch, ok)
     message << "\n"
   }
