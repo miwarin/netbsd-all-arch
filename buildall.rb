@@ -150,12 +150,12 @@ def send_mail(config, message)
 end
 
 def main(argv)
+  config = setup()
+  get_source()
+
   arch_readme = '/usr/src/sys/arch/README'
   machine_arch = get_all_arch(arch_readme)
   message = ''
-  config = setup()
-
-  get_source()
 
   machine_arch.each {|arch|
     result_file = do_build(arch)
